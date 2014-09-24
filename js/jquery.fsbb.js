@@ -38,13 +38,16 @@
 		title_pos : {'left' : 0, 'top' : 0},
 		background : '',
 		useCoverAnimate : true,
+		bb_before: function(page) {
+			return false;
+		},
 		bb_after: function(page) {
 			return false;
 		}
 	};
 	jQuery.FourSlideBookBlock.bb_defaults = {
 		chapter : 1,
-		bb_after : function() {
+		bookblock_after : function() {
 			return false;
         }
 	};
@@ -204,9 +207,11 @@
 						shadowSides : 0.8,
 						shadowFlip : 0.4,
 						onEndFlip : function(o,p,isLimit) {
+							self.options.bb_before((p+1));
 							self.options.bb_after((p+1));
 							self.$navi.children('#fsbb-navi-chapter'+(p+1)).addClass('current').siblings().removeClass('current');
 							self.currentChapter = (p+1);
+							self.$el.attr('data-currentChapter',(p+1));
 							self.perfect_scroll(self.$items[p].item.find('.item-wrapper'));
 						}
 					} );
@@ -282,6 +287,7 @@
 				this.bbDestruct();
 			}
 			var opt = $.extend( true, {}, self.options, options );
+			if(this.fs_mode) this.$wel.removeClass(this.fs_mode);
 			this.fs_mode = opt.mode;
 			this.elWidth = this.$wel.width();
 			this.elHeight = this.$wel.height();
@@ -316,6 +322,7 @@
 		initEvents : function() {
 			var self = this;
 			this.pageMode = 'four-slide';
+			this.$el.attr('attr-pageMode','four-slide');
 			this.$wel.addClass('fs-mode').addClass(this.fs_mode);
 			this.$el.addClass('four-slide');
 			this.$vline.css('display','block').removeClass('anmiate2bb');
@@ -323,47 +330,55 @@
 			this.$background.css('display','block');
 			for(var i=0; i < this.$items.length; i++) {
 				var item = this.$items[i];
-				if(item.item.data('clickEvent') !== true) {
-					if(this.supportsTouch == true) {
-						item.item.bind('touchstart.fsbb',function(e) {
-							if(self.pageMode != 'four-slide') return;
-							if(jQuery(this).hasClass('hover')) {
-								var ch = jQuery(this).data('chapter');
-								self.bb_activate({ chapter : ch });
-							} else {
-								jQuery(this).addClass('hover').siblings().removeClass('hover');
-							}
-						});
-					} else {
+				if(this.supportsTouch == true) {
+					item.item.unbind('touchstart.fsbb');
+					item.item.bind('touchstart.fsbb',function(e) {
+						if(self.pageMode != 'four-slide') return;
+						if(jQuery(this).hasClass('hover')) {
+							var ch = jQuery(this).data('chapter');
+							self.bb_activate({ chapter : ch });
+						} else {
+							jQuery(this).addClass('hover').siblings().removeClass('hover');
+						}
+					});
+				} else {
+					item.item.unbind('click.fsbb');
+					item.item.find('.subject, .summary').unbind('click.fsbb');
+					if(self.fs_mode == 'cover') {
 						item.item.bind('click.fsbb',function(e) {
 							if(self.pageMode != 'four-slide') return;
-							if(jQuery(e.target).closest('.subject, .summary').length < 1 && self.fs_mode != 'cover') return;
+							if(self.fs_mode != 'cover') return;
 							var ch = jQuery(this).data('chapter');
 							self.bb_activate({ chapter : ch });
 						});
+					}
+					if(self.fs_mode != 'cover') {
 						item.item.find('.subject, .summary').bind('click.fsbb',function(e) {
 							var ch = jQuery(this).parents('.chapter-item').data('chapter');
 							self.bb_activate({ chapter : ch });
 						});
 					}
-					item.item.data('clickEvent',true);
 				}
 			}
-			this.set_Pos();
+			this.set_Pos(0);
 			this.animate_cover();
 
+			$window.unbind('resize.fsbb');
 			$window.bind('resize.fsbb',function() {
 				self.elWidth = self.$wel.width();
 				self.elHeight = self.$wel.height();
 				if(self.pageMode == 'four-slide') {
-					self.set_Pos();
+					self.set_Pos(1);
 					self.set_ePos();
+					if(self.fs_mode != 'cover') {
+						self.hiddenTitlePos();
+					}
 				} else if(self.pageMode == 'bookblock') {
 					self.hiddenTitlePos();
 				}
 			});
 		},
-		set_Pos : function() {
+		set_Pos : function(resizeOpt) {
 			var self = this;
 			if(this.resizeTitle === true && this.$titleSVG) {
 				var curTitleWidth = parseInt(this.$titleSVG.attr('width'));
@@ -382,8 +397,8 @@
 				}
 			}
 			this.$title.css({
-				'left': ( ( this.$title.data('left') > 0 ) ? this.$title.data('left') : parseInt((this.elWidth - this.$title.outerWidth()) / 2) )+'px',
-				'top' : ( ( this.$title.data('top') > 0 ) ? this.$title.data('top') : parseInt((this.elHeight - this.$title.outerHeight()) / 2) )+'px'
+				'left': ( ( !resizeOpt && this.$title.data('left') > 0 ) ? this.$title.data('left') : parseInt((this.elWidth - this.$title.outerWidth()) / 2) )+'px',
+				'top' : ( ( !resizeOpt && this.$title.data('top') > 0 ) ? this.$title.data('top') : parseInt((this.elHeight - this.$title.outerHeight()) / 2) )+'px'
 			});
 			this.$vline.css({
 				'height' : this.elHeight+'px',
@@ -396,8 +411,8 @@
 			});
 			this.$hline.children('.line').css({ 'width'  : this.elWidth+'px'  });
 			if(this.options.background) {
-				var bl = parseInt((this.$el.outerWidth() - this.$background.width()) / 2);
-				var bt = parseInt((this.$el.outerHeight() - this.$background.height()) / 2);
+				var bl = parseInt((this.$wel.outerWidth() - this.$background.width()) / 2);
+				var bt = parseInt((this.$wel.outerHeight() - this.$background.height()) / 2);
 				this.$background.css({
 					'left' : bl+'px',
 					'top'  : bt+'px'
@@ -439,6 +454,7 @@
 		},
 		set_ePos : function() {
 			var self = this;
+
 			for(var i=0; i<this.$items.length; i++) {
 				var obj = this.$items[i];
 				var item = obj.item;
@@ -450,6 +466,13 @@
 				}
 				var maxHeight = parseInt(item.height() * 0.95) - targetY - parseInt(this.$title.height() / 2);
 				obj.summary.css( { 'max-height' : maxHeight+'px' } );
+				if(this.fs_mode == 'quart' && this.$title) {
+					if( !(i % 2) ) {
+						obj.content.css( { 'padding-right' : parseInt( this.$title.outerWidth() / 2 )+'px' });
+					} else {
+						obj.content.css( { 'padding-left' : parseInt( this.$title.outerWidth() / 2 )+'px' });
+					}
+				}
 			}
 		},
 		hiddenTitlePos : function() {
@@ -465,9 +488,10 @@
 		animate_cover : function() {
 			var self = this;
 			if(this.options.useCoverAnimate === true) {
+				var chline_w = parseInt( this.$hline.children('.line').css('width') );
 				this.$vline.children('.line').css({ 'height' : self.elHeight+'px' });
 				this.$hline.children('.line').css({ 'width'  : self.elWidth+'px'  });
-				if(this.transEndEventName) {
+				if(chline_w != self.elWidth && this.transEndEventName) {
 					this.$hline.bind(self.transEndEventName, function(e) {
 						for(var i=0; i<self.$items.length; i++) {
 							self.$items[i].item.addClass('show');
@@ -476,9 +500,9 @@
 						jQuery(this).unbind(self.transEndEventName);
 					});
 				} else {
-					this.$items.each(function(i) {
-						this.item.addClass('show');
-					});
+					for(var i=0; i<this.$items.length; i++) {
+						this.$items[i].item.addClass('show');
+					}
 					this.set_ePos();
 				}
 			} else {
@@ -518,12 +542,13 @@
 					jQuery(this).unbind(self.transEndEventName);
 				});
 			}
+			this.options.bb_before(ch);
 			setTimeout(function() {
 				self.destruct();
 				self.bbInit(ch);
 				self.perfect_scroll(self.$items[(ch-1)].item.find('.item-wrapper'));
-				opt.bb_after();
-			}, 1010);
+				opt.bookblock_after();
+			}, 1000);
 		},
 		destruct : function() {
 			this.$background.css('display','none');
@@ -545,6 +570,7 @@
 			for(var i=0; i<this.$items.length; i++) {
 				var item = this.$items[i].item;
 				this.remove_scroll(this.$items[i].content);
+				item.unbind('click.fsbb');
 				item.unbind('touchstart.fsbb');
 				var el = item.find( '.subject, .summary' );
 				el.unbind( 'click.fsbb touchstart.fsbb');
@@ -560,6 +586,7 @@
 		bbInit : function(ch) {
 			var self = this;
 			this.pageMode = 'bookblock';
+			this.$el.attr('attr-pageMode','bookblock');
 			this.$wel.addClass('bb-mode');
 			this.$el.addClass('bb-bookblock');
 			for(var i=0; i<this.$items.length; i++) {
@@ -567,12 +594,14 @@
 				item.addClass('bb-item');
 				this.$items[i].subject.css( { 'top' : '' , 'bottom' : '' } );
 				this.$items[i].summary.css( { 'top' : '' , 'bottom' : '', 'max-height' : 'none' } );
+				this.$items[i].content.css( { 'padding-left' : '0' , 'padding-right' : '0' } );
 			}
 
 			this.BBPage.init(ch);
 			this.$navi.children('#fsbb-navi-chapter'+(ch)).addClass('current').siblings().removeClass('current');
 			this.currentChapter = ch;
-			self.options.bb_after(ch);
+			this.$el.attr('data-currentChapter',ch);
+			this.options.bb_after(ch);
 		},
 		bbDestruct : function() {
 			this.BBPage.destroy();
@@ -584,6 +613,7 @@
 				this.remove_scroll(item.find('.item-wrapper'));
 			}
 			this.pageMode = '';
+			this.$el.attr('attr-pageMode','');
 		},
 		perfect_scroll : function(obj) {
 			obj.addClass('perfect-scroll');

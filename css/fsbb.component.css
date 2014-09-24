@@ -158,10 +158,12 @@ h1.fsbb-title {
 	width: 50%;
 	height: 50%;
 	float: left;
-	cursor: pointer;
 	opacity: 0;
 	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)"; /* IE 8 */
 	filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=0); /* IE 7 and olders */
+}
+.cover .four-slide .four-item {
+	cursor: pointer;
 }
 .cover-animate .four-slide .four-item {
 	transition-property: opacity, width, height;
@@ -295,6 +297,7 @@ h1.fsbb-title {
 /* theme :  sewol */
 .sewol .four-slide .four-item {
 	position: relative;
+	overflow: hidden;
 }
 .sewol .four-slide .four-item .subject,
 .sewol .four-slide .four-item .summary {
@@ -502,6 +505,9 @@ h1.fsbb-title {
 .sewol.quart .four-slide .four-item.chapter4-item .content {
 	margin-top: 10px;
 }
+.sewol.quart .four-slide .four-item.chapter2-item .content,
+.sewol.quart .four-slide .four-item.chapter4-item .content {
+}
 .sewol.cover .four-slide .four-item.hover .item-background,
 .sewol.cover .four-slide .four-item.hover .item-background,
 .sewol.cover .four-slide .four-item:hover .item-background {
@@ -571,14 +577,16 @@ h1.fsbb-title {
 	vertical-align: middle;
 }
 .fsbb-wrapper.sewol.bb-mode .fsbb-navi-wrap ul.fsbb-navi li.current {
-	background: #E7E8E9;
+	background: #E6E7E8;
+}
+.fsbb-wrapper.sewol.bb-mode .fsbb-navi-wrap ul.fsbb-navi li.current div.fsbb-navi-inner {
+	font-weight: bold;
 }
 .fsbb-wrapper.sewol.bb-mode .fsbb-navi-wrap ul.fsbb-navi li div.fsbb-navi-inner {
 	display: table-cell;
 	vertical-align: middle;
 	text-align: left;
 	padding: 0 20px;
-	font-weight: bold;
 	color: #666;
 }
 
